@@ -390,13 +390,9 @@ playercollisions = false
 scalefactor = 5
 gelcannondelay = 0.05
 gelcannonspeed = 30
-infinitetime = false
-infinitelives = false
 
 pausemenuoptions = {"resume", "suspend", "volume", "quit to", "quit to"}
 pausemenuoptions2 = {"", "", "", "menu", "desktop"}
 
 guirepeatdelay = 0.07
 mappackhorscrollrange = 220
-
-maximumbulletbills = 3

@@ -149,60 +149,6 @@ function koopa:update(dt)
 			end
 		end
 		
-		if self.small == false and self.t ~= "redflying" then
-			if self.speedx > 0 then
-				if self.speedx > koopaspeed then
-					self.speedx = self.speedx - friction*dt*2
-					if self.speedx < koopaspeed then
-						self.speedx = koopaspeed
-					end
-				elseif self.speedx < koopaspeed then
-					self.speedx = self.speedx + friction*dt*2
-					if self.speedx > koopaspeed then
-						self.speedx = koopaspeed
-					end
-				end
-			else
-				if self.speedx < -koopaspeed then
-					self.speedx = self.speedx + friction*dt*2
-					if self.speedx > -koopaspeed then
-						self.speedx = -koopaspeed
-					end
-				elseif self.speedx > -koopaspeed then
-					self.speedx = self.speedx - friction*dt*2
-					if self.speedx < -koopaspeed then
-						self.speedx = -koopaspeed
-					end
-				end
-			end
-		else
-			if self.speedx > 0 then
-				if self.speedx > koopasmallspeed then
-					self.speedx = self.speedx - friction*dt*2
-					if self.speedx < koopasmallspeed then
-						self.speedx = koopasmallspeed
-					end
-				elseif self.speedx < koopasmallspeed then
-					self.speedx = self.speedx + friction*dt*2
-					if self.speedx > koopasmallspeed then
-						self.speedx = koopasmallspeed
-					end
-				end
-			elseif self.speedx < 0 then
-				if self.speedx < -koopasmallspeed then
-					self.speedx = self.speedx + friction*dt*2
-					if self.speedx > -koopasmallspeed then
-						self.speedx = -koopasmallspeed
-					end
-				elseif self.speedx > -koopasmallspeed then
-					self.speedx = self.speedx - friction*dt*2
-					if self.speedx < -koopasmallspeed then
-						self.speedx = -koopasmallspeed
-					end
-				end
-			end
-		end
-		
 		return false
 	end
 end
@@ -275,10 +221,8 @@ function koopa:leftcollide(a, b)
 				addpoints(koopacombo[self.combo], b.x, b.y)
 			else
 				for i = 1, players do
-					if mariolivecount ~= false then
-						mariolives[i] = mariolives[i]+1
-						respawnplayers()
-					end
+					mariolives[i] = mariolives[i]+1
+					respawnplayers()
 				end
 				table.insert(scrollingscores, scrollingscore:new("1up", b.x, b.y))
 				playsound(oneupsound)
@@ -318,10 +262,8 @@ function koopa:rightcollide(a, b)
 				addpoints(koopacombo[self.combo], b.x, b.y)
 			else
 				for i = 1, players do
-					if mariolivecount ~= false then
-						mariolives[i] = mariolives[i]+1
-						respawnplayers()
-					end
+					mariolives[i] = mariolives[i]+1
+					respawnplayers()
 				end
 				table.insert(scrollingscores, scrollingscore:new("1up", b.x, b.y))
 				playsound(oneupsound)
@@ -339,7 +281,11 @@ function koopa:rightcollide(a, b)
 end
 
 function koopa:passivecollide(a, b)
-	return false
+	if self.speedx > 0 then
+		self:rightcollide(a, b)
+	else
+		self:leftcollide(a, b)
+	end
 end
 
 function koopa:globalcollide(a, b)

@@ -135,29 +135,15 @@ function goomba:update(dt)
 			end
 		end
 		
-		if self.speedx > 0 then
-			if self.speedx > goombaspeed then
-				self.speedx = self.speedx - friction*dt*2
-				if self.speedx < goombaspeed then
-					self.speedx = goombaspeed
-				end
-			elseif self.speedx < goombaspeed then
-				self.speedx = self.speedx + friction*dt*2
-				if self.speedx > goombaspeed then
-					self.speedx = goombaspeed
-				end
+		if self.speedx > goombaspeed then
+			self.speedx = self.speedx - friction*dt
+			if self.speedx < goombaspeed then
+				self.speedx = goombaspeed
 			end
-		else
-			if self.speedx < -goombaspeed then
-				self.speedx = self.speedx + friction*dt*2
-				if self.speedx > -goombaspeed then
-					self.speedx = -goombaspeed
-				end
-			elseif self.speedx > -goombaspeed then
-				self.speedx = self.speedx - friction*dt*2
-				if self.speedx < -goombaspeed then
-					self.speedx = -goombaspeed
-				end
+		elseif self.speedx < -goombaspeed then
+			self.speedx = self.speedx + friction*dt
+			if self.speedx > goombaspeed then
+				self.speedx = -goombaspeed
 			end
 		end
 		
