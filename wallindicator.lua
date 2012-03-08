@@ -13,14 +13,8 @@ function wallindicator:link()
 	if #self.r > 2 then
 		for j, w in pairs(outputs) do
 			for i, v in pairs(objects[w]) do
-				local haslink = false
-				for indx = 1, #self.r do
-					if self.r[indx] == "link" and tonumber(self.r[indx+1]) == v.cox and tonumber(self.r[indx+2]) == v.coy then
-						haslink = true
-					end
-				end
-				if haslink then
-					v:addoutput(self) --adds this entity as an output to v.
+				if tonumber(self.r[4]) == v.cox and tonumber(self.r[5]) == v.coy then
+					v:addoutput(self)
 				end
 			end
 		end

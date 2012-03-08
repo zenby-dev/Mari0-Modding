@@ -280,9 +280,16 @@ function hammer:init(x, y, dir)
 	self.static = false
 	self.active = true
 	self.category = 14
-	self.mask = {true, true, false, false, false, true, false, false, false, true, false, true, false, false, false, false, false, false, false, true}
+	self.mask = {	true,
+					true, false, false, false, true,
+					true, true, true, true, true,
+					true, false, true, true, true,
+					true, true, true, false, true,
+					true, true, true, true, true,
+					true, true, true, true, true}
 	self.emancipatecheck = true
 	self.gravity = hammergravity
+	self.autodelete = true
 	
 	--IMAGE STUFF
 	self.drawable = true
