@@ -15,27 +15,9 @@ function game_load(suspended)
 	
 	mariocoincount = 0
 	marioscore = 0
-	
-	--get mariolives
-	mariolivecount = 3
-	if love.filesystem.exists("mappacks/" .. mappack .. "/settings.txt") then
-		local s = love.filesystem.read( "mappacks/" .. mappack .. "/settings.txt" )
-		local s1 = s:split("\n")
-		for j = 1, #s1 do
-			local s2 = s1[j]:split("=")
-			if s2[1] == "lives" then
-				mariolivecount = tonumber(s2[2])
-			end
-		end
-	end
-	
-	if mariolivecount == 0 then
-		mariolivecount = false
-	end
-	
 	mariolives = {}
 	for i = 1, players do
-		mariolives[i] = mariolivecount
+		mariolives[i] = 3
 	end
 	
 	mariosizes = {}
@@ -45,8 +27,8 @@ function game_load(suspended)
 	
 	autoscroll = true
 	
-	inputs = { "door", "groundlight", "wallindicator", "cubedispenser", "walltimer", "notgate", "laser", "lightbridge"}
-	inputsi = {28, 29, 30, 43, 44, 45, 46, 47, 48, 67, 74, 84, 52, 53, 54, 55, 36, 37, 38, 39}
+	inputs = { "door", "groundlight", "wallindicator", "cubedispenser", "walltimer", "notgate"}
+	inputsi = {28, 29, 30, 43, 44, 45, 46, 47, 48, 67, 74, 84}
 	
 	outputs = { "button", "laserdetector", "box", "pushbutton", "walltimer", "notgate"}
 	outputsi = {40, 56, 57, 58, 59, 20, 68, 69, 74, 84}
@@ -54,6 +36,28 @@ function game_load(suspended)
 	enemies = { "goomba", "koopa", "hammerbro", "plant", "lakito", "bowser", "cheep", "squid", "flyingfish", "goombahalf", "koopahalf", "cheepwhite", "cheepred", "koopared", "kooparedhalf", "koopa", "kooparedflying", "beetle", "beetlehalf", "spikey", "spikeyhalf"}
 	
 	jumpitems = { "mushroom", "oneup" }
+
+	for k, v in pairs(modobjects) do
+
+		if v.input then
+			table.insert(inputs, k)
+			table.insert(inputsi, v.input)
+		end
+
+		if v.output then
+			table.insert(outputs, k)
+			table.insert(outputsi, v.output)
+		end
+
+		if v.enemy then
+			table.insert(enemies, k)
+		end
+
+		if v.jumpitem then
+			table.insert(jumpitems, k)
+		end
+
+	end
 	
 	marioworld = 1
 	mariolevel = 1	
@@ -61,10 +65,8 @@ function game_load(suspended)
 	respawnsublevel = 0
 	
 	objects = nil
-	if suspended == true then
+	if suspended then
 		continuegame()
-	elseif suspended then
-		marioworld = suspended
 	end
 	
 	--remove custom sprites
@@ -117,7 +119,7 @@ function game_load(suspended)
 	levelscreen_load("initial")
 end
 
-function game_update(dt)
+function game_update(dt)	
 	--------
 	--GAME--
 	--------
@@ -181,7 +183,7 @@ function game_update(dt)
 			end
 		end
 		
-		if notime == false and infinitetime == false and mariotime ~= 0 then
+		if notime == false and mariotime ~= 0 then
 			mariotime = mariotime - 2.5*dt
 			
 			if mariotime > 0 and mariotime + 2.5*dt >= 99 and mariotime < 99 then
@@ -200,7 +202,7 @@ function game_update(dt)
 				if not star then
 					playmusic()
 				else
-					music:play("starmusic")
+					playsound(starmusic)
 				end
 			end
 			
@@ -319,7 +321,7 @@ function game_update(dt)
 	end
 	
 	--gelcannon
-	if objects["player"][mouseowner] and playertype == "gelcannon" and objects["player"][mouseowner].controlsenabled then
+	if playertype == "gelcannon" and objects["player"][mouseowner].controlsenabled then
 		if gelcannontimer > 0 then
 			gelcannontimer = gelcannontimer - dt
 			if gelcannontimer < 0 then
@@ -544,106 +546,104 @@ function game_update(dt)
 	
 	--SPRITEBATCH UPDATE and CASTLEREPEATS
 	if math.floor(splitxscroll[1]) ~= spritebatchX[1] then
-		if not editormode then
-			for currentx = lastrepeat+1, math.floor(splitxscroll[1])+2 do
-				lastrepeat = math.floor(currentx)
-				--castlerepeat?
-				--get mazei
-				local mazei = 0
+		if math.floor(splitxscroll[1]) > lastrepeat and not editormode then
+			lastrepeat = math.floor(splitxscroll[1])
+			--castlerepeat?
+			--get mazei
+			local mazei = 0
+			
+			for j = 1, #mazeends do
+				if mazeends[j] < splitxscroll[1]+width then
+					mazei = j
+				end
+			end
+			
+			
+			--check if maze was solved!
+			for i = 1, players do
+				if objects["player"][i].mazevar == mazegates[mazei] then
+					mazesolved[mazei] = true
+					for j = 1, players do
+						objects["player"][j].mazevar = 0
+					end
+					break
+				end
+			end
+			
+			if not mazesolved[mazei] or mazeinprogress then --get if inside maze
+				if not mazesolved[mazei] then
+					mazeinprogress = true
+				end
 				
-				for j = 1, #mazeends do
-					if mazeends[j] < currentx+width then
-						mazei = j
+				local x = math.ceil(splitxscroll[1])+width
+				
+				if repeatX == 0 then
+					repeatX = mazestarts[mazei]
+				end
+				
+				table.insert(map, x, {{1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}})
+				for y = 1, 15 do
+					for j = 1, #map[repeatX][y] do
+						map[x][y][j] = map[repeatX][y][j]
+					end
+					map[x][y]["gels"] = {}
+					
+					for cox = mapwidth, x, -1 do
+						--move objects
+						if objects["tile"][cox .. "-" .. y] then
+							objects["tile"][cox + 1 .. "-" .. y] = tile:new(cox, y-1, 1, 1, true)
+							objects["tile"][cox .. "-" .. y] = nil
+						end
+					end
+					
+					--create object for block
+					if tilequads[map[repeatX][y][1]].collision == true then
+						objects["tile"][x .. "-" .. y] = tile:new(x-1, y-1, 1, 1, true)
+					end
+				end
+				mapwidth = mapwidth + 1
+				repeatX = repeatX + 1
+				if flagx then
+					flagx = flagx + 1
+					flagimgx = flagimgx + 1
+					objects["screenboundary"]["flag"].x = objects["screenboundary"]["flag"].x + 1
+				end
+				
+				if axex then
+					axex = axex + 1
+					objects["screenboundary"]["axe"].x = objects["screenboundary"]["axe"].x + 1
+				end
+				
+				if firestartx then
+					firestartx = firestartx + 1
+				end
+				
+				objects["screenboundary"]["right"].x = objects["screenboundary"]["right"].x + 1
+				
+				--move mazestarts and ends
+				for i = 1, #mazestarts do
+					mazestarts[i] = mazestarts[i]+1
+					mazeends[i] = mazeends[i]+1
+				end
+				
+				--check for endblock
+				local x = math.ceil(splitxscroll[1])+width
+				for y = 1, 15 do
+					if map[x][y][2] and entityquads[map[x][y][2]].t == "mazeend" then
+						if mazesolved[mazei] then
+							repeatX = mazestarts[mazei+1]
+						end
+						mazeinprogress = false
 					end
 				end
 				
+				--reset thingie
 				
-				--check if maze was solved!
-				for i = 1, players do
-					if objects["player"][i].mazevar == mazegates[mazei] then
-						mazesolved[mazei] = true
+				local x = math.ceil(splitxscroll[1])+width-1
+				for y = 1, 15 do
+					if map[x][y][2] and entityquads[map[x][y][2]].t == "mazeend" then
 						for j = 1, players do
 							objects["player"][j].mazevar = 0
-						end
-						break
-					end
-				end
-				
-				if not mazesolved[mazei] or mazeinprogress then --get if inside maze
-					if not mazesolved[mazei] then
-						mazeinprogress = true
-					end
-					
-					local x = math.ceil(currentx)+width
-					
-					if repeatX == 0 then
-						repeatX = mazestarts[mazei]
-					end
-					
-					table.insert(map, x, {{1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}})
-					for y = 1, 15 do
-						for j = 1, #map[repeatX][y] do
-							map[x][y][j] = map[repeatX][y][j]
-						end
-						map[x][y]["gels"] = {}
-						
-						for cox = mapwidth, x, -1 do
-							--move objects
-							if objects["tile"][cox .. "-" .. y] then
-								objects["tile"][cox + 1 .. "-" .. y] = tile:new(cox, y-1, 1, 1, true)
-								objects["tile"][cox .. "-" .. y] = nil
-							end
-						end
-						
-						--create object for block
-						if tilequads[map[repeatX][y][1]].collision == true then
-							objects["tile"][x .. "-" .. y] = tile:new(x-1, y-1, 1, 1, true)
-						end
-					end
-					mapwidth = mapwidth + 1
-					repeatX = repeatX + 1
-					if flagx then
-						flagx = flagx + 1
-						flagimgx = flagimgx + 1
-						objects["screenboundary"]["flag"].x = objects["screenboundary"]["flag"].x + 1
-					end
-					
-					if axex then
-						axex = axex + 1
-						objects["screenboundary"]["axe"].x = objects["screenboundary"]["axe"].x + 1
-					end
-					
-					if firestartx then
-						firestartx = firestartx + 1
-					end
-					
-					objects["screenboundary"]["right"].x = objects["screenboundary"]["right"].x + 1
-					
-					--move mazestarts and ends
-					for i = 1, #mazestarts do
-						mazestarts[i] = mazestarts[i]+1
-						mazeends[i] = mazeends[i]+1
-					end
-					
-					--check for endblock
-					local x = math.ceil(currentx)+width
-					for y = 1, 15 do
-						if map[x][y][2] and entityquads[map[x][y][2]].t == "mazeend" then
-							if mazesolved[mazei] then
-								repeatX = mazestarts[mazei+1]
-							end
-							mazeinprogress = false
-						end
-					end
-					
-					--reset thingie
-					
-					local x = math.ceil(currentx)+width-1
-					for y = 1, 15 do
-						if map[x][y][2] and entityquads[map[x][y][2]].t == "mazeend" then
-							for j = 1, players do
-								objects["player"][j].mazevar = 0
-							end
 						end
 					end
 				end
@@ -973,7 +973,7 @@ function game_draw()
 						love.graphics.drawq(tilequads[t[1]].image, tilequads[t[1]].quad, math.floor((x-1-math.mod(xscroll, 1))*16*scale), ((y-1)*16-8)*scale, 0, scale, scale)
 					end
 					
-					if #t > 1 and t[2] ~= "link" then
+					if #t > 1 and t[2] ~= "link" and entityquads[t[2]] ~= nil then
 						tilenumber = t[2]
 						love.graphics.setColor(255, 255, 255, 150)
 						love.graphics.drawq(entityquads[tilenumber].image, entityquads[tilenumber].quad, math.floor((x-1-math.mod(xscroll, 1))*16*scale), ((y-1)*16-8)*scale, 0, scale, scale)
@@ -1015,22 +1015,18 @@ function game_draw()
 		if players > 1 then
 			for i = 1, players do
 				local x = (width*16)/players/2 + (width*16)/players*(i-1)
-				if mariolivecount ~= false then
-					properprint("p" .. i .. " * " .. mariolives[i], (x-string.len("p" .. i .. " * " .. mariolives[i])*4+4)*scale, 25*scale)
-					love.graphics.setColor(mariocolors[i][1])
-					love.graphics.rectangle("fill", (x-string.len("p" .. i .. " * " .. mariolives[i])*4-3)*scale, 25*scale, 7*scale, 7*scale)
-					love.graphics.setColor(255, 255, 255, 255)
-				end
+				properprint("p" .. i .. " * " .. mariolives[i], (x-string.len("p" .. i .. " * " .. mariolives[i])*4+4)*scale, 25*scale)
+				love.graphics.setColor(mariocolors[i][1])
+				love.graphics.rectangle("fill", (x-string.len("p" .. i .. " * " .. mariolives[i])*4-3)*scale, 25*scale, 7*scale, 7*scale)
+				love.graphics.setColor(255, 255, 255, 255)
 			end
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--vines
 		for j, w in pairs(objects["vine"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--warpzonetext
 		if displaywarpzonetext then
 			properprint("welcome to warp zone!", (mapwidth-14-1/16-xscroll)*16*scale, 88*scale)
@@ -1039,31 +1035,26 @@ function game_draw()
 			end
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--platforms
 		for j, w in pairs(objects["platform"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--platforms
 		for j, w in pairs(objects["seesawplatform"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--seesaws
 		for j, w in pairs(seesaws) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--springs
 		for j, w in pairs(objects["spring"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--flag
 		if flagx then
 			love.graphics.draw(flagimg, math.floor((flagimgx-1-xscroll)*16*scale), ((flagimgy)*16-8)*scale, 0, scale, scale)
@@ -1072,7 +1063,6 @@ function game_draw()
 			end
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--axe
 		if axex then
 			love.graphics.drawq(axeimg, axequads[coinframe], math.floor((axex-1-xscroll)*16*scale), (axey-1.5)*16*scale, 0, scale, scale)
@@ -1084,7 +1074,6 @@ function game_draw()
 			end
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--levelfinish text and toad
 		if levelfinished and levelfinishtype == "castle" then
 			if levelfinishedmisc2 == 1 then
@@ -1120,77 +1109,75 @@ function game_draw()
 			end
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--Fireworks
 		for j, w in pairs(fireworks) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--Buttons
 		for j, w in pairs(objects["button"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--Upfires
 		for j, w in pairs(objects["upfire"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--Pushbuttons
 		for j, w in pairs(objects["pushbutton"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--hardlight bridges
 		for j, w in pairs(objects["lightbridgebody"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--laser
 		for j, w in pairs(objects["laser"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--laserdetector
 		for j, w in pairs(objects["laserdetector"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--lightbridge
 		
 		for j, w in pairs(objects["lightbridge"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--Groundlights
 		for j, w in pairs(objects["groundlight"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--Faithplates
 		for j, w in pairs(objects["faithplate"]) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
-		--Bubbles
+		--Faithplates
 		for j, w in pairs(bubbles) do
 			w:draw()
 		end
 		
-		love.graphics.setColor(255, 255, 255)
 		--miniblocks
 		for i, v in pairs(miniblocks) do
 			v:draw()
+		end
+
+		--Mod Support Special Drawing, "below" layer
+
+		for k, v in pairs(modspecialdraws["below"]) do
+
+			for j, w in pairs(objects[v]) do
+				w:draw(v)
+			end
+
 		end
 		
 		--OBJECTS
@@ -1273,30 +1260,14 @@ function game_draw()
 							
 							if v.drawhat and hatoffsets[v.animationstate] then
 								local offsets = {}
-								if v.graphic == v.biggraphic or v.animationstate == "grow" then
-									if v.animationstate == "grow" then
-										offsets = hatoffsets["grow"]
-									elseif underwater and (v.animationstate == "jumping" or v.animationstate == "falling") then
-										offsets = bighatoffsets["swimming"][v.swimframe]
-									elseif v.ducking then
-										offsets = bighatoffsets["ducking"]
-									elseif v.animationstate == "running" or v.animationstate == "falling"  then
-										offsets = bighatoffsets["running"][v.runframe]
-									elseif v.animationstate == "climbing" then
-										offsets = bighatoffsets["climbing"][v.climbframe]
-									else
-										offsets = bighatoffsets[v.animationstate]
-									end
+								if underwater and (v.animationstate == "jumping" or v.animationstate == "falling") then
+									offsets = hatoffsets["swimming"][v.swimframe]
+								elseif v.animationstate == "running" or v.animationstate == "falling"  then
+									offsets = hatoffsets["running"][v.runframe]
+								elseif v.animationstate == "climbing" then
+									offsets = hatoffsets["climbing"][v.climbframe]
 								else
-									if underwater and (v.animationstate == "jumping" or v.animationstate == "falling") then
-										offsets = hatoffsets["swimming"][v.swimframe]
-									elseif v.animationstate == "running" or v.animationstate == "falling"  then
-										offsets = hatoffsets["running"][v.runframe]
-									elseif v.animationstate == "climbing" then
-										offsets = hatoffsets["climbing"][v.climbframe]
-									else
-										offsets = hatoffsets[v.animationstate]
-									end
+									offsets = hatoffsets[v.animationstate]
 								end
 						
 								if #v.hats > 0 then
@@ -1307,13 +1278,8 @@ function game_draw()
 										else
 											love.graphics.setColor(255, 255, 255)
 										end
-										if v.graphic == v.biggraphic or v.animationstate == "grow" then
-											love.graphics.draw(bighat[v.hats[i]].graphic, math.floor(((v.x-xscroll)*16+v.offsetX)*scale), math.floor(((v.y)*16-v.offsetY)*scale), v.rotation, dirscale, horscale, v.quadcenterX - bighat[v.hats[i]].x + offsets[1], v.quadcenterY - bighat[v.hats[i]].y + offsets[2] + yadd)
-											yadd = yadd + bighat[v.hats[i]].height
-										else
-											love.graphics.draw(hat[v.hats[i]].graphic, math.floor(((v.x-xscroll)*16+v.offsetX)*scale), math.floor(((v.y)*16-v.offsetY)*scale), v.rotation, dirscale, horscale, v.quadcenterX - hat[v.hats[i]].x + offsets[1], v.quadcenterY - hat[v.hats[i]].y + offsets[2] + yadd)
-											yadd = yadd + hat[v.hats[i]].height
-										end
+										love.graphics.draw(hat[v.hats[i]].graphic, math.floor(((v.x-xscroll)*16+v.offsetX)*scale), math.floor(((v.y)*16-v.offsetY)*scale), v.rotation, dirscale, horscale, v.quadcenterX - hat[v.hats[i]].x + offsets[1], v.quadcenterY - hat[v.hats[i]].y + offsets[2] + yadd)
+										yadd = yadd + hat[v.hats[i]].height
 									end
 								end
 							end
@@ -1368,48 +1334,26 @@ function game_draw()
 									
 									if v.drawhat and hatoffsets[v.animationstate] then
 										local offsets = {}
-										if v.graphic == v.biggraphic or v.animationstate == "grow" then
-											if v.animationstate == "grow" then
-												offsets = hatoffsets["grow"]
-											elseif underwater and (v.animationstate == "jumping" or v.animationstate == "falling") then
-												offsets = bighatoffsets["swimming"][v.swimframe]
-											elseif v.ducking then
-												offsets = bighatoffsets["ducking"]
-											elseif v.animationstate == "running" or v.animationstate == "falling"  then
-												offsets = bighatoffsets["running"][v.runframe]
-											elseif v.animationstate == "climbing" then
-												offsets = bighatoffsets["climbing"][v.climbframe]
-											else
-												offsets = bighatoffsets[v.animationstate]
-											end
+										if underwater and (v.animationstate == "jumping" or v.animationstate == "falling") then
+											offsets = hatoffsets["swimming"][v.swimframe]
+										elseif v.animationstate == "running" then
+											offsets = hatoffsets["running"][v.runframe]
+										elseif v.animationstate == "climbing" then
+											offsets = hatoffsets["climbing"][v.climbframe]
 										else
-											if underwater and (v.animationstate == "jumping" or v.animationstate == "falling") then
-												offsets = hatoffsets["swimming"][v.swimframe]
-											elseif v.animationstate == "running" or v.animationstate == "falling"  then
-												offsets = hatoffsets["running"][v.runframe]
-											elseif v.animationstate == "climbing" then
-												offsets = hatoffsets["climbing"][v.climbframe]
-											else
-												offsets = hatoffsets[v.animationstate]
-											end
+											offsets = hatoffsets[v.animationstate]
 										end
-								
-										if #v.hats > 0 then
+										
+										if #v.hats > 1 or v.hats[1] ~= 1 then
 											local yadd = 0
 											for i = 1, #v.hats do
-												if v.hats[i] == 1 then
-													love.graphics.setColor(v.colors[1])
-												else
-													love.graphics.setColor(255, 255, 255)
-												end
-												if v.graphic == v.biggraphic or v.animationstate == "grow" then
-													love.graphics.draw(bighat[v.hats[i]].graphic, math.floor(((px-xscroll)*16+v.offsetX)*scale), math.floor(((py)*16-v.offsetY)*scale), pr, dirscale, horscale, v.quadcenterX - bighat[v.hats[i]].x + offsets[1], v.quadcenterY - bighat[v.hats[i]].y + offsets[2] + yadd)
-													yadd = yadd + bighat[v.hats[i]].height
-												else
-													love.graphics.draw(hat[v.hats[i]].graphic, math.floor(((px-xscroll)*16+v.offsetX)*scale), math.floor(((py)*16-v.offsetY)*scale), pr, dirscale, horscale, v.quadcenterX - hat[v.hats[i]].x + offsets[1], v.quadcenterY - hat[v.hats[i]].y + offsets[2] + yadd)
-													yadd = yadd + hat[v.hats[i]].height
-												end
+												love.graphics.setColor(255, 255, 255)
+												love.graphics.draw(hat[v.hats[i]].graphic, math.floor(((px-xscroll)*16+v.offsetX)*scale), math.floor(((py)*16-v.offsetY)*scale), pr, dirscale, horscale, v.quadcenterX - hat[v.hats[i]].x + offsets[1], v.quadcenterY - hat[v.hats[i]].y + offsets[2] + yadd)
+												yadd = yadd + hat[v.hats[i]].height
 											end
+										elseif #v.hats == 1 then
+											love.graphics.setColor(v.colors[1])
+											love.graphics.draw(hat[v.hats[1]].graphic, math.floor(((px-xscroll)*16+v.offsetX)*scale), math.floor(((py)*16-v.offsetY)*scale), pr, dirscale, horscale, v.quadcenterX - hat[v.hats[1]].x + offsets[1], v.quadcenterY - hat[v.hats[1]].y + offsets[2])
 										end
 									end
 									
@@ -1473,6 +1417,16 @@ function game_draw()
 		--Notgates
 		for j, w in pairs(objects["notgate"]) do
 			w:draw()
+		end
+
+		--Mod Support Special Drawing, "above" layer
+
+		for k, v in pairs(modspecialdraws["above"]) do
+
+			for j, w in pairs(objects[v]) do
+				w:draw()
+			end
+
 		end
 		
 		--particles
@@ -1643,7 +1597,7 @@ function game_draw()
 		
 		--Minecraft
 		--black border
-		if objects["player"][mouseowner] and playertype == "minecraft" and not levelfinished then
+		if playertype == "minecraft" and not levelfinished then
 			local v = objects["player"][mouseowner]
 			local sourcex, sourcey = v.x+6/16, v.y+6/16
 			local cox, coy, side, tend, x, y = traceline(sourcex, sourcey, v.pointingangle)
@@ -2013,6 +1967,13 @@ function startlevel(level)
 	
 	objects["screenboundary"] = {}
 	objects["screenboundary"]["left"] = screenboundary:new(0)
+
+	for k, v in pairs(modobjects) do
+
+		--print("Adding a mod object index to objects: "..k)
+		objects[k] = {}
+
+	end
 	
 	splitxscroll = {0}
 	
@@ -2189,9 +2150,6 @@ function startlevel(level)
 	for i, v in pairs(objects["laser"]) do
 		v:updaterange()
 	end
-	for i, v in pairs(objects["lightbridge"]) do
-		v:updaterange()
-	end
 	
 	generatespritebatch()
 end
@@ -2204,6 +2162,64 @@ function loadmap(filename)
 	end
 	local s = love.filesystem.read( "mappacks/" .. mappack .. "/" .. filename .. ".txt" )
 	local s2 = s:split(";")
+
+	--An important part of the mod system; forcing compatibility
+	for i = 2, #s2 do
+		local smod = s2[i]:split("=")
+		if smod[1] == "entnameoverride" then
+			local useo = smod[2]:split("|")
+			local entname = useo[1]
+			local index = tonumber(useo[2]) --TARGET index
+
+			if modobjects[entname] then --REASSIGNMENT
+
+				local omi = tonumber(modobjects[entname].indx) --where the entity should NOT be
+				modobjects[entname].indx = index --mod definition's index updated
+
+				--print("Reassigning "..entname.." from "..omi.." to "..index)
+
+				if entityquads[index] then
+
+					local oldquad = entityquads[index]
+					--print("  "..tostring(entityquads[omi]))
+					entityquads[index] = entityquads[omi] --put it in it's place
+					entityquads[omi] = oldquad --move this to where the other one shouldn't have been
+
+					modobjects[oldquad.t].indx = omi --update the other entity's index
+
+					local oel = entitylist[index]
+					entitylist[index] = entitylist[omi]
+					entitylist[omi] = oel
+
+					local oed = entitydescriptions[index]
+					entitydescriptions[index] = entitydescriptions[omi]
+					entitydescriptions[omi] = oed
+
+					--print("  Swapped "..oel.." ("..index.."->"..omi..") and "..entitylist[index].." ("..omi.."->"..index..") in the entity list")
+					--print("  "..index..": quads = "..tostring(entityquads[index]).."; list = "..tostring(entitylist[index]).."; desc. = "..tostring(entitydescriptions[index]))
+					--print("  "..omi..": quads = "..tostring(entityquads[omi]).."; list = "..tostring(entitylist[omi]).."; desc. = "..tostring(entitydescriptions[omi]))
+
+				else
+
+					entityquads[index] = entityquads[omi] --put it in it's place
+					entityquads[omi] = EmptyEntityQuad() --move this to where the other one shouldn't have been
+
+					entitylist[index] = entitylist[omi]
+					entitylist[omi] = ""
+
+					entitydescriptions[index] = entitydescriptions[omi]
+					entitydescriptions[omi] = "compatibility placeholder, do not place"
+					entitiescount = entitiescount + 1 --...
+
+				end
+
+			else --There's an override, but the entity doesn't exist. This messes up entity quads and stuff.
+
+				print("Ent override for non-existant entity: "..entname.."|"..index)
+
+			end
+		end
+	end
 	
 	--MAP ITSELF
 	local t = s2[1]:split(",")
@@ -2226,10 +2242,6 @@ function loadmap(filename)
 			
 			local r = tostring(t[(y-1)*(#t/15)+x]):split("-")
 			
-			if tonumber(r[1]) > smbtilecount+portaltilecount+customtilecount then
-				r[1] = 1
-			end
-			
 			for i = 1, #r do
 				if r[i] ~= "link" then
 					map[x][y][i] = tonumber(r[i])
@@ -2249,7 +2261,8 @@ function loadmap(filename)
 		for x = 1, #t/15 do
 			local r = map[x][y]
 			if #r > 1 then
-				local t = entityquads[r[2]].t
+				local eqt = entityquads[r[2]]
+				local t = (eqt ~= nil and eqt.t or "")
 				if t == "spawn" then
 					startx = x
 					starty = y
@@ -2311,22 +2324,22 @@ function loadmap(filename)
 						table.insert(objects["faithplate"], faithplate:new(x, y, "left"))
 						
 					elseif t == "laserright" then
-						table.insert(objects["laser"], laser:new(x, y, "right", r))
+						table.insert(objects["laser"], laser:new(x, y, "right"))
 					elseif t == "laserdown" then
-						table.insert(objects["laser"], laser:new(x, y, "down", r))
+						table.insert(objects["laser"], laser:new(x, y, "down"))
 					elseif t == "laserleft" then
-						table.insert(objects["laser"], laser:new(x, y, "left", r))
+						table.insert(objects["laser"], laser:new(x, y, "left"))
 					elseif t == "laserup" then
-						table.insert(objects["laser"], laser:new(x, y, "up", r))
+						table.insert(objects["laser"], laser:new(x, y, "up"))
 						
 					elseif t == "lightbridgeright" then
-						table.insert(objects["lightbridge"], lightbridge:new(x, y, "right", r))
+						table.insert(objects["lightbridge"], lightbridge:new(x, y, "right"))
 					elseif t == "lightbridgeleft" then
-						table.insert(objects["lightbridge"], lightbridge:new(x, y, "left", r))
+						table.insert(objects["lightbridge"], lightbridge:new(x, y, "left"))
 					elseif t == "lightbridgedown" then
-						table.insert(objects["lightbridge"], lightbridge:new(x, y, "down", r))
+						table.insert(objects["lightbridge"], lightbridge:new(x, y, "down"))
 					elseif t == "lightbridgeup" then
-						table.insert(objects["lightbridge"], lightbridge:new(x, y, "up", r))
+						table.insert(objects["lightbridge"], lightbridge:new(x, y, "up"))
 						
 					elseif t == "laserdetectorright" then
 						table.insert(objects["laserdetector"], laserdetector:new(x, y, "right"))
@@ -2392,6 +2405,14 @@ function loadmap(filename)
 						if not tablecontains(mazeends, x) then
 							table.insert(mazeends, x)
 						end
+					elseif modobjects[t] ~= nil then
+
+						if modobjects[t].enemy ~= true then
+
+							modobjects[t].const[2](modobjects[t].const[1], x, y, r)
+
+						end
+
 					end
 				end
 			end
@@ -2538,11 +2559,11 @@ end
 function game_keypressed(key, unicode)
 	if pausemenuopen then
 		if menuprompt then
-			if (key == "left" or key == "a") then
+			if key == "left" then
 				pausemenuselected2 = 1
-			elseif (key == "right" or key == "d") then
+			elseif key == "right" then
 				pausemenuselected2 = 2
-			elseif (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
+			elseif (key == "return" or key == "enter") then
 				if pausemenuselected2 == 1 then
 					love.audio.stop()
 					pausemenuopen = false
@@ -2556,11 +2577,11 @@ function game_keypressed(key, unicode)
 			end
 			return
 		elseif desktopprompt then
-			if (key == "left" or key == "a") then
+			if key == "left" then
 				pausemenuselected2 = 1
-			elseif (key == "right" or key == "d") then
+			elseif key == "right" then
 				pausemenuselected2 = 2
-			elseif (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
+			elseif (key == "return" or key == "enter") then
 				if pausemenuselected2 == 1 then
 					love.audio.stop()
 					love.event.quit()
@@ -2572,11 +2593,11 @@ function game_keypressed(key, unicode)
 			end
 			return
 		elseif suspendprompt then
-			if (key == "left" or key == "a") then
+			if key == "left" then
 				pausemenuselected2 = 1
-			elseif (key == "right" or key == "d") then
+			elseif key == "right" then
 				pausemenuselected2 = 2
-			elseif (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
+			elseif (key == "return" or key == "enter") then
 				if pausemenuselected2 == 1 then
 					love.audio.stop()
 					suspendgame()
@@ -2590,15 +2611,15 @@ function game_keypressed(key, unicode)
 			end
 			return
 		end
-		if (key == "down" or key == "s") then
+		if key == "down" then
 			if pausemenuselected < #pausemenuoptions then
 				pausemenuselected = pausemenuselected + 1
 			end
-		elseif (key == "up" or key == "w") then
+		elseif key == "up" then
 			if pausemenuselected > 1 then
 				pausemenuselected = pausemenuselected - 1
 			end
-		elseif (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
+		elseif (key == "return" or key == "enter") then
 			if pausemenuoptions[pausemenuselected] == "resume" then
 				pausemenuopen = false
 				love.audio.resume()
@@ -2615,7 +2636,7 @@ function game_keypressed(key, unicode)
 		elseif key == "escape" then
 			pausemenuopen = false
 			love.audio.resume()
-		elseif (key == "right" or key == "d") then
+		elseif key == "right" then
 			if pausemenuoptions[pausemenuselected] == "volume" then
 				if volume < 1 then
 					volume = volume + 0.1
@@ -2625,7 +2646,7 @@ function game_keypressed(key, unicode)
 				end
 			end
 			
-		elseif (key == "left" or key == "a") then
+		elseif key == "left" then
 			if pausemenuoptions[pausemenuselected] == "volume" then
 				volume = math.max(volume - 0.1, 0)
 				love.audio.setVolume( volume )
@@ -3120,27 +3141,6 @@ function getTile(x, y, portalable, portalcheck, facing) --returns masktable valu
 		end
 	end
 	
-	--check for tubes
-	for i, v in pairs(objects["geldispenser"]) do
-		if (x == v.cox or x == v.cox+1) and (y == v.coy or y == v.coy+1) then
-			if portalcheck then
-				return false
-			else
-				return true
-			end
-		end
-	end
-	
-	--bonusstage thing for keeping it from fucking up.
-	if bonusstage then
-		if y == 15 and (x == 4 or x == 6) then
-			if portalcheck then
-				return false
-			else
-				return true
-			end
-		end
-	end
 	
 	if x <= 0 or y <= 0 or y >= 16 or x > mapwidth then
 		return false, 1
@@ -3449,6 +3449,12 @@ function savemap(filename)
 		s = s .. ";portalbackground"
 	end
 	s = s .. ";timelimit=" .. mariotimelimit
+
+	for entname, t in pairs(modobjects) do
+
+		s = s..";entnameoverride="..entname.."|"..t.indx
+
+	end
 	
 	--tileset
 	
@@ -3615,7 +3621,7 @@ function spawnenemy(x, y)
 	local t = map[x][y]
 	if #t > 1 then
 		local enemy = true
-		local i = entityquads[t[2]].t
+		local i = (entityquads[t[2]] ~= nil and entityquads[t[2]].t or "")
 		if i == "goomba" then
 			table.insert(objects["goomba"], goomba:new(x-0.5, y-1/16))
 		elseif i == "goombahalf" then
@@ -3700,8 +3706,11 @@ function spawnenemy(x, y)
 			
 		elseif i == "upfire" then
 			table.insert(objects["upfire"], upfire:new(x, y))
-		else
 
+		elseif modobjects[i] and modobjects[i].enemy == true then
+			modobjects[i].const[2](modobjects[i].const[1], x, y, r)
+		
+		else
 			enemy = false
 		end
 		
@@ -3752,9 +3761,22 @@ function addzeros(s, i)
 	return s
 end
 
+function properprint(s, x, y)
+	local startx = x
+	for i = 1, string.len(tostring(s)) do
+		local char = string.sub(s, i, i)
+		if char == "|" then
+			x = startx-((i)*8)*scale
+			y = y + 10*scale
+		elseif fontquads[char] then
+			love.graphics.drawq(fontimage, fontquads[char], x+((i-1)*8)*scale, y, 0, scale, scale)
+		end
+	end
+end
+
 function properprint2(s, x, y)
 	for i = 1, string.len(tostring(s)) do
-		if fontquads[string.sub(s, i, i)] then
+		if font2quads[string.sub(s, i, i)] then
 			love.graphics.drawq(fontimage2, font2quads[string.sub(s, i, i)], x+((i-1)*4)*scale, y, 0, scale, scale)
 		end
 	end
@@ -3971,9 +3993,9 @@ end
 function playmusic()
 	if musici ~= 1 then
 		if mariotime < 100 and mariotime > 0 then
-			music:playIndex(musici-1, true)
+			playsound(musiclistfast[musici-1])
 		else
-			music:playIndex(musici-1)
+			playsound(musiclist[musici-1])
 		end
 	end
 end
@@ -3981,9 +4003,9 @@ end
 function stopmusic()
 	if musici ~= 1 then
 		if mariotime < 100 and mariotime > 0 then
-			music:stopIndex(musici-1, true)
+			love.audio.stop(musiclistfast[musici-1])
 		else
-			music:stopIndex(musici-1)
+			love.audio.stop(musiclist[musici-1])
 		end
 	end
 end
@@ -4106,9 +4128,6 @@ function breakblock(x, y)
 end
 
 function respawnplayers()
-	if mariolivecount == false then
-		return
-	end
 	for i = 1, players do
 		if mariolives[i] == 1 and objects["player"].dead then
 			objects["player"][i]:respawn()

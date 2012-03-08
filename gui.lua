@@ -368,12 +368,9 @@ function guielement:keypress(key)
 	if self.active then
 		if self.type == "input" then
 			if self.inputting then
-				if key == "-" or key == "," or key == ":" or key == ";" then
-					return
-				end
 				if key == "escape" then
 					self.inputting = false
-				elseif (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
+				elseif (key == "return" or key == "enter") then
 					if self.func then
 						self:func()
 					else

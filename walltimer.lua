@@ -66,18 +66,13 @@ function walltimer:out(t)
 end
 
 function walltimer:input(t)
-	if t == "on" then
+	if t ~= "off" then
 		self:out("on")
 		self.timer = self.time
 		self.lighted = true
 		self.quad = 2
-	elseif t == "off" then
+	else
 		self.lighted = false
 		self.timer = 0
-	elseif t == "toggle" then
-		self.timer = 0
-		self.quad = 2
-		self.lighted = false
-		self:out("on")
 	end
 end

@@ -62,9 +62,6 @@ function editor_load()
 	guielements["portalbutton"].bordercolor = {0, 0, 255}
 	guielements["portalbutton"].bordercolorhigh = {127, 127, 255}
 	
-	guielements["livesdecrease"] = guielement:new("button", 198, 104, "{", livesdecrease, 0)
-	guielements["livesincrease"] = guielement:new("button", 194, 104, "}", livesincrease, 0)
-	
 	--MAPS
 	guielements["savebutton2"] = guielement:new("button", 10, 140, "save", savelevel, 2)
 	guielements["savebutton2"].bordercolor = {255, 0, 0}
@@ -74,18 +71,16 @@ function editor_load()
 	local mappackname = ""
 	local mappackauthor = ""
 	local mappackdescription = ""
-	if love.filesystem.exists("mappacks/" .. mappack .. "/settings.txt") then
-		local data = love.filesystem.read("mappacks/" .. mappack .. "/settings.txt")
-		local split1 = data:split("\n")
-		for i = 1, #split1 do
-			local split2 = split1[i]:split("=")
-			if split2[1] == "name" then
-				mappackname = split2[2]:lower()
-			elseif split2[1] == "author" then
-				mappackauthor = split2[2]:lower()
-			elseif split2[1] == "description" then
-				mappackdescription = split2[2]:lower()
-			end
+	local data = love.filesystem.read("mappacks/" .. mappack .. "/settings.txt")
+	local split1 = data:split("\n")
+	for i = 1, #split1 do
+		local split2 = split1[i]:split("=")
+		if split2[1] == "name" then
+			mappackname = split2[2]:lower()
+		elseif split2[1] == "author" then
+			mappackauthor = split2[2]:lower()
+		elseif split2[1] == "description" then
+			mappackdescription = split2[2]:lower()
 		end
 	end
 	
@@ -266,10 +261,11 @@ function editor_draw()
 								for i = 3, #map[x][y] do
 									if map[x][y][i] == "link" then
 										x2, y2 = tonumber(map[x][y][i+1]), tonumber(map[x][y][i+2])
-										break
+										love.graphics.line((x-xscroll-.5)*16*scale, (y-1)*16*scale, (x2-xscroll-.5)*16*scale, (y2-1)*16*scale)
+										--break --don't exit after the first link
 									end
 								end
-								love.graphics.line((x-xscroll-.5)*16*scale, (y-1)*16*scale, (x2-xscroll-.5)*16*scale, (y2-1)*16*scale)
+								--love.graphics.line((x-xscroll-.5)*16*scale, (y-1)*16*scale, (x2-xscroll-.5)*16*scale, (y2-1)*16*scale)
 							end
 						end
 					end
@@ -315,7 +311,9 @@ function editor_draw()
 				end
 			else
 				for i = 1, entitiescount do
-					love.graphics.drawq(entityquads[i].image, entityquads[i].quad, math.mod((i-1), 22)*17*scale+5*scale, math.floor((i-1)/22)*17*scale+38*scale-tilesoffset, 0, scale, scale)
+					local qu = entityquads[i]
+					if qu == nil then print("Derp in editor, "..i) end
+					love.graphics.drawq(qu.image, qu.quad, math.mod((i-1), 22)*17*scale+5*scale, math.floor((i-1)/22)*17*scale+38*scale-tilesoffset, 0, scale, scale)
 				end
 			end
 			
@@ -451,16 +449,6 @@ function editor_draw()
 			guielements["editauthor"]:draw()
 			guielements["editdescription"]:draw()
 			guielements["savesettings"]:draw()
-			
-			properprint("lives:", 150*scale, 106*scale)
-			guielements["livesincrease"]:draw()
-			if mariolivecount == false then
-				properprint("inf", 210*scale, 106*scale)
-			else
-				properprint(mariolivecount, 210*scale, 106*scale)
-			end
-			
-			guielements["livesdecrease"]:draw()
 		end
 	end
 end
@@ -545,9 +533,6 @@ function toolstab()
 	guielements["editauthor"].active = true
 	guielements["editdescription"].active = true
 	guielements["savesettings"].active = true
-	
-	guielements["livesdecrease"].active = true
-	guielements["livesincrease"].active = true
 end
 
 function mapstab()
@@ -718,11 +703,6 @@ function editoropen()
 	editormenuopen = true
 	targetmapwidth = mapwidth
 	guielements["mapwidthincrease"].x = 282 + string.len(targetmapwidth)*8
-	if mariolivecount == false then
-		guielements["livesincrease"].x = 212 + 24
-	else
-		guielements["livesincrease"].x = 212 + string.len(mariolivecount)*8
-	end
 	guirepeattimer = 0
 	getmaps()
 	
@@ -806,9 +786,10 @@ function editor_mousepressed(x, y, button)
 				local tileX, tileY = getMouseTile(x, y+8*scale)
 				local r = map[tileX][tileY]
 				if #r > 1 then
-					local tile = r[2]
+					local tile = r[2] --r[2] is a tile's index.
 					--LIST OF NUMBERS THAT ARE ACCEPT AS OUTPUT (doors, lights)
 					if tablecontains( inputsi, r[2] ) then
+						--print(r[2])
 						linktoolX, linktoolY = tileX, tileY
 					end
 				end
@@ -855,14 +836,8 @@ function editor_mousepressed(x, y, button)
 		end
 		
 	elseif button == "wd" then
-		if editentities then
-			if currenttile < #entitylist then
-				currenttile = currenttile + 1
-			end
-		else
-			if currenttile < smbtilecount+portaltilecount+customtilecount then
-				currenttile = currenttile + 1
-			end
+		if currenttile < tilecount1 then
+			currenttile = currenttile + 1
 		end
 		
 	elseif button == "r" then
@@ -929,7 +904,7 @@ function editor_mousepressed(x, y, button)
 end
 
 function rightclickmenuclick(i)
-	if i > 1 then
+	if i > 0 then
 		map[rightclickmenucox][rightclickmenucoy][3] = rightclickvalues[rightclickmenutile][i]
 	end
 end
@@ -943,39 +918,46 @@ function editor_mousereleased(x, y, button)
 				local startx, starty = linktoolX, linktoolY
 				local endx, endy = getMouseTile(x, y+8*scale)
 				
-				if startx ~= endx or starty ~= endy then
-					local r = map[endx][endy]
+				local r = map[endx][endy] --The tile we are dragging TO
+				
+				--LIST OF NUMBERS THAT ARE ACCEPTED AS INPUTS (buttons, laserdetectors)
+				if #r > 1 and tablecontains( outputsi, r[2] ) then --Check if acceptable
+					r = map[startx][starty] --The the tile that we are dragging FROM
 					
-					--LIST OF NUMBERS THAT ARE ACCEPTED AS INPUTS (buttons, laserdetectors)
-					if #r > 1 and tablecontains( outputsi, r[2] ) then
-						r = map[startx][starty]
-						
-						local i = 1
-						while r[i] ~= "link" and i <= #r do
-							i = i + 1
-						end
-						
+					local i = 1
+					local alreadylinked = false
+					--[[while r[i] ~= "link" and i <= #r do --OLD BEHAVIOR: find an empty spot to define the link from. If there is already a link, it overrides it.
+						i = i + 1
+					end]]
+					while i <= #r do --NEW BEHAVIOR: find an empty spot to define a new link from.
+						if r[i] == "link" and r[i + 1] == endx and r[i + 2] == endy then alreadylinked = true break end
+						i = i + 1
+					end
+					
+					if alreadylinked == false then
+
 						map[startx][starty][i] = "link"
 						map[startx][starty][i+1] = endx
 						map[startx][starty][i+2] = endy
+
 					end
-					
-					linktoolX, linktoolY = nil, nil
-					
-					--Update links
-					for i, v in pairs(objects) do
-						for j, w in pairs(v) do
-							if w.outtable then
-								w.outtable = {}
-							end
+				end
+				
+				linktoolX, linktoolY = nil, nil
+				
+				--Update links
+				for i, v in pairs(objects) do
+					for j, w in pairs(v) do
+						if w.outtable then
+							w.outtable = {}
 						end
 					end
-					
-					for i, v in pairs(objects) do
-						for j, w in pairs(v) do
-							if w.link then
-								w:link()
-							end
+				end
+				
+				for i, v in pairs(objects) do
+					for j, w in pairs(v) do
+						if w.link then
+							w:link()
 						end
 					end
 				end
@@ -1058,11 +1040,11 @@ end
 
 function changemusic(var)
 	if musici ~= 1 then
-		music:stopIndex(musici-1)
+		musiclist[musici-1]:stop()
 	end
 	musici = var
 	if musici ~= 1 then
-		music:playIndex(musici-1)
+		playsound(musiclist[musici-1])
 	end
 	guielements["musicdropdown"].var = var
 end
@@ -1104,12 +1086,7 @@ function test_level()
 	testlevelworld = marioworld
 	testlevellevel = mariolevel
 	autoscroll = true
-	checkpointx = false
-	if mariosublevel ~= 0 then
-		startlevel(marioworld .. "-" .. mariolevel .. "_" .. mariosublevel)
-	else
-		startlevel(marioworld .. "-" .. mariolevel)
-	end
+	startlevel(marioworld .. "-" .. mariolevel)
 end
 
 function portalbutton()
@@ -1138,37 +1115,6 @@ function savesettings()
 	s = s .. "name=" .. guielements["edittitle"].value .. "\n"
 	s = s .. "author=" .. guielements["editauthor"].value .. "\n"
 	s = s .. "description=" .. guielements["editdescription"].value .. "\n"
-	if mariolivecount == false then
-		s = s .. "lives=0\n"
-	else
-		s = s .. "lives=" .. mariolivecount .. "\n"
-	end
-	
-	love.filesystem.mkdir( "mappacks" )
-	love.filesystem.mkdir( "mappacks/" .. mappack )
 	
 	love.filesystem.write("mappacks/" .. mappack .. "/settings.txt", s)
-end
-
-function livesdecrease()
-	if mariolivecount == false then
-		return
-	end
-	
-	mariolivecount = mariolivecount - 1
-	if mariolivecount == 0 then
-		mariolivecount = false
-		guielements["livesincrease"].x = 212 + 24
-	else
-		guielements["livesincrease"].x = 212 + string.len(mariolivecount)*8
-	end
-end
-
-function livesincrease()
-	if mariolivecount == false then
-		mariolivecount = 1
-	else
-		mariolivecount = mariolivecount + 1
-	end
-	guielements["livesincrease"].x = 212 + string.len(mariolivecount)*8
 end

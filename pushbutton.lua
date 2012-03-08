@@ -47,7 +47,7 @@ function pushbutton:used()
 		self.timer = 0
 		for i = 1, #self.outtable do
 			if self.outtable[i].input then
-				self.outtable[i]:input("toggle")
+				self.outtable[i]:input("toggle", tostring(self))
 			end
 		end
 	end

@@ -231,9 +231,11 @@ function entity:init(img, x, y, width, height)
 end
 
 function entity:sett(i)
-	for j = 1, #entitylist do
-		if i == j then
-			self.t = entitylist[j]
+	if type(i) == "number" then
+		for j = 1, #entitylist do
+			if i == j then
+				self.t = entitylist[j]
+			end
 		end
 	end
 end

@@ -273,12 +273,6 @@ function menu_draw()
 	if gamestate == "menu" then
 		love.graphics.draw(titleimage, 40*scale, 24*scale, 0, scale, scale)
 		
-		if updatenotification then
-			love.graphics.setColor(255, 0, 0)
-			properprint("version outdated!|go to stabyourself.net|to download latest", 220*scale, 90*scale)
-			love.graphics.setColor(255, 255, 255, 255)
-		end
-		
 		if selection == 0 then
 			love.graphics.draw(menuselection, 73*scale, (137+(selection-1)*16)*scale, 0, scale, scale)
 		elseif selection == 1 then
@@ -345,30 +339,6 @@ function menu_draw()
 			love.graphics.draw(playerselectimg, 102*scale, 138*scale, 0, -scale, scale)
 		end
 		
-		if selectworldopen then
-			love.graphics.setColor(0, 0, 0)
-			love.graphics.rectangle("fill", 30*scale, 92*scale, 200*scale, 60*scale)
-			love.graphics.setColor(255, 255, 255)
-			drawrectangle(31, 93, 198, 58)
-			properprint("select world", 83*scale, 105*scale)
-			for i = 1, 8 do
-				if selectworldcursor == i then
-					love.graphics.setColor(255, 255, 255)
-				elseif reachedworlds[mappack][i] then
-					love.graphics.setColor(200, 200, 200)
-				elseif selectworldexists[i] then
-					love.graphics.setColor(50, 50, 50)
-				else
-					love.graphics.setColor(0, 0, 0)
-				end
-				
-				properprint(i, (55+(i-1)*20)*scale, 130*scale)
-				if i == selectworldcursor then
-					properprint("v", (55+(i-1)*20)*scale, 120*scale)
-				end
-			end
-		end
-		
 	elseif gamestate == "mappackmenu" then
 		--background
 		love.graphics.setColor(0, 0, 0, 100)
@@ -384,23 +354,13 @@ function menu_draw()
 			love.graphics.setColor(255, 255, 255, 255)
 			properprint("a little patience..|downloading " .. currentdownload .. " of " .. downloadcount, 50*scale, 30*scale)
 		else
+		
 			love.graphics.translate(- mappackhorscrollsmooth*scale*mappackhorscrollrange, 0)
 			
 			if mappackhorscrollsmooth < 1 then
 				--draw each butten (even if all you do, is press ONE. BUTTEN.)
 				--scrollbar offset
 				love.graphics.translate(0, -mappackscrollsmooth*60*scale)
-				
-				love.graphics.setScissor(240*scale, 16*scale, 200*scale, 200*scale)
-				love.graphics.setColor(0, 0, 0, 200)
-				love.graphics.rectangle("fill", 240*scale, 81*scale, 115*scale, 61*scale)
-				love.graphics.setColor(255, 255, 255)
-				if not savefolderfailed then
-					properprint("press right to|access the dlc||press m to|open your|mappack folder", 241*scale, 83*scale)
-				else
-					properprint("press right to|access the dlc||could not|open your|mappack folder", 241*scale, 83*scale)
-				end
-				love.graphics.setScissor(21*scale, 16*scale, 218*scale, 200*scale)
 				
 				for i = 1, #mappacklist do
 					--back
@@ -484,7 +444,7 @@ function menu_draw()
 				love.graphics.setColor(0, 0, 0, 200)
 				love.graphics.rectangle("fill", 241*scale, 16*scale, 150*scale, 200*scale)
 				love.graphics.setColor(255, 255, 255, 255)
-				properprint("wanna contribute?|make a mappack and|send an email to|mappack at|stabyourself.net!||include your map-|pack! you can find|it in your appdata|love/mari0 dir.", 244*scale, 19*scale)
+				properprint("wanna contribute?|make a mappack and|send an email to|mappack at|stabyourself.net!||include your map-|pack! you can find|it in your|appdata/mari0 dir.", 244*scale, 19*scale)
 				if outdated then
 					love.graphics.setColor(255, 0, 0, 255)
 					properprint("version outdated!|you have an old|version of mari0!|mappacks could not|be downloaded.|go to|stabyourself.net|to download latest", 244*scale, 130*scale)
@@ -1067,32 +1027,6 @@ function menu_draw()
 			else
 				properprint("off", (180-24)*scale, 165*scale)
 			end
-			
-			if optionsselection == 9 then
-				love.graphics.setColor(255, 255, 255, 255)
-			else
-				love.graphics.setColor(100, 100, 100, 255)
-			end
-			
-			properprint("infinite time:", 30*scale, 180*scale)
-			if infinitetime then
-				properprint("on", (180-16)*scale, 180*scale)
-			else
-				properprint("off", (180-24)*scale, 180*scale)
-			end
-			
-			if optionsselection == 10 then
-				love.graphics.setColor(255, 255, 255, 255)
-			else
-				love.graphics.setColor(100, 100, 100, 255)
-			end
-			
-			properprint("infinite lives:", 30*scale, 195*scale)
-			if infinitelives then
-				properprint("on", (180-16)*scale, 195*scale)
-			else
-				properprint("off", (180-24)*scale, 195*scale)
-			end
 		end
 	end
 end
@@ -1179,14 +1113,10 @@ function loadbackground(background)
 				r = map[x][y]
 				
 				if #r > 1 then
-					if entityquads[tonumber(r[2])].t == "spawn" then
+					if entityquads[tonumber(r[2])] and entityquads[tonumber(r[2])].t == "spawn" then
 						startx = x
 						starty = y
 					end
-				end
-				
-				if tonumber(r[1]) > smbtilecount+portaltilecount+customtilecount then
-					r[1] = 1
 				end
 			end
 		end
@@ -1271,9 +1201,9 @@ function loadmappacks()
 			mappackicon[i] = nil
 		end
 		
-		mappackauthor[i] = ""
-		mappackdescription[i] = ""
-		mappackbackground[i] = "1-1"
+		mappackauthor[i] = nil
+		mappackdescription[i] = nil
+		mappackbackground[i] = nil
 		if love.filesystem.exists( "mappacks/" .. mappacklist[i] .. "/settings.txt" ) then		
 			local s = love.filesystem.read( "mappacks/" .. mappacklist[i] .. "/settings.txt" )
 			local s1 = s:split("\n")
@@ -1471,32 +1401,7 @@ end
 
 function menu_keypressed(key, unicode)
 	if gamestate == "menu" then
-		if selectworldopen then
-			if (key == "right" or key == "d") then
-				local target = selectworldcursor+1
-				while target < 9 and not reachedworlds[mappack][target] do
-					target = target + 1
-				end
-				if target < 9 then
-					selectworldcursor = target
-				end
-			elseif (key == "left" or key == "a") then
-				local target = selectworldcursor-1
-				while target > 0 and not reachedworlds[mappack][target] do
-					target = target - 1
-				end
-				if target > 0 then
-					selectworldcursor = target
-				end
-			elseif (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
-				selectworldopen = false
-				game_load(selectworldcursor)
-			elseif key == "escape" then
-				selectworldopen = false
-			end
-			return
-		end
-		if (key == "up" or key == "w") then
+		if key == "up" then
 			if continueavailable then
 				if selection > 0 then
 					selection = selection - 1
@@ -1506,15 +1411,15 @@ function menu_keypressed(key, unicode)
 					selection = selection - 1
 				end
 			end
-		elseif (key == "down" or key == "s") then
+		elseif key == "down" then
 			if selection < 4 then
 				selection = selection + 1
 			end
-		elseif (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
+		elseif (key == "return" or key == "enter") then
 			if selection == 0 then
 				game_load(true)
 			elseif selection == 1 then
-				selectworld()
+				game_load()
 			elseif selection == 2 then
 				editormode = true
 				players = 1
@@ -1526,8 +1431,6 @@ function menu_keypressed(key, unicode)
 				goombaattack = false
 				sonicrainboom = false
 				playercollisions = false
-				infinitetime = false
-				infinitelives = false
 				game_load()
 			elseif selection == 3 then
 				gamestate = "mappackmenu"
@@ -1537,18 +1440,18 @@ function menu_keypressed(key, unicode)
 			end
 		elseif key == "escape" then
 			love.event.quit()
-		elseif (key == "left" or key == "a") then
+		elseif key == "left" then
 			if players > 1 then
 				players = players - 1
 			end
-		elseif (key == "right" or key == "d") then
+		elseif key == "right" then
 			players = players + 1
 			if players > 4 then
 				players = 4
 			end
 		end
 	elseif gamestate == "mappackmenu" then
-		if (key == "up" or key == "w") then
+		if key == "up" then
 			if mappacktype == "local" then
 				if mappackselection > 1 then
 					mappackselection = mappackselection - 1
@@ -1578,7 +1481,7 @@ function menu_keypressed(key, unicode)
 					onlineupdatescroll()
 				end
 			end
-		elseif (key == "down" or key == "s") then
+		elseif key == "down" then
 			if mappacktype == "local" then
 				if mappackselection < #mappacklist then
 					mappackselection = mappackselection + 1
@@ -1608,22 +1511,18 @@ function menu_keypressed(key, unicode)
 					onlineupdatescroll()
 				end
 			end	
-		elseif key == "escape" or (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
+		elseif key == "escape" or (key == "return" or key == "enter") then
 			gamestate = "menu"
 			saveconfig()
 			if mappack == "custom_mappack" then
 				createmappack()
 			end
-		elseif (key == "right" or key == "d") then
+		elseif key == "right" then
 			loadonlinemappacks()
 			mappackhorscroll = 1
-		elseif (key == "left" or key == "a") then
+		elseif key == "left" then
 			loadmappacks()
 			mappackhorscroll = 0
-		elseif key == "m" then
-			if not openSaveFolder("mappacks") then
-				savefolderfailed = true
-			end
 		end
 	elseif gamestate == "onlinemenu" then
 		if CLIENT == false and SERVER == false then
@@ -1633,29 +1532,29 @@ function menu_keypressed(key, unicode)
 				server_load()
 			end
 		elseif SERVER then
-			if (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
+			if (key == "return" or key == "enter") then
 				server_start()
 			end
 		end
 	elseif gamestate == "options" then
 		if optionsselection == 1 then
-			if (key == "left" or key == "a") then
+			if key == "left" then
 				if optionstab > 1 then
 					optionstab = optionstab - 1
 				end
-			elseif (key == "right" or key == "d") then
+			elseif key == "right" then
 				if optionstab < 4 then
 					optionstab = optionstab + 1
 				end
 			end
 		elseif optionsselection == 2 then
-			if (key == "left" or key == "a") then
+			if key == "left" then
 				if optionstab == 2 or optionstab == 1 then
 					if skinningplayer > 1 then
 						skinningplayer = skinningplayer - 1
 					end
 				end
-			elseif (key == "right" or key == "d") then
+			elseif key == "right" then
 				if optionstab == 2 or optionstab == 1 then
 					if skinningplayer < 4 then
 						skinningplayer = skinningplayer + 1
@@ -1667,11 +1566,14 @@ function menu_keypressed(key, unicode)
 			end
 		end
 		
-		if (key == "return" or key == "enter" or key == "kpenter" or key == " ") then
+		if (key == "return" or key == "enter") then
 			if optionstab == 1 then
 				if optionsselection == 3 then
 					if mouseowner == skinningplayer then
-						mouseowner = 0
+						mouseowner = skinningplayer + 1
+						if mouseowner == 5 then
+							mouseowner = 1
+						end
 					else
 						mouseowner = skinningplayer
 					end
@@ -1685,7 +1587,7 @@ function menu_keypressed(key, unicode)
 					resetconfig()
 				end
 			end
-		elseif (key == "down" or key == "s") then
+		elseif key == "down" then
 			if optionstab == 1 then
 				if skinningplayer ~= mouseowner then
 					if optionsselection < 15 then
@@ -1713,13 +1615,13 @@ function menu_keypressed(key, unicode)
 					optionsselection = 1
 				end
 			elseif optionstab == 4 and gamefinished then
-				if optionsselection < 10 then
+				if optionsselection < 8 then
 					optionsselection = optionsselection + 1
 				else
 					optionsselection = 1
 				end
 			end
-		elseif (key == "up" or key == "w") then
+		elseif key == "up" then
 			if optionsselection > 1 then
 				optionsselection = optionsselection - 1
 			else
@@ -1734,10 +1636,10 @@ function menu_keypressed(key, unicode)
 				elseif optionstab == 3 then
 					optionsselection = 8
 				elseif optionstab == 4 and gamefinished then
-					optionsselection = 10
+					optionsselection = 8
 				end
 			end
-		elseif (key == "right" or key == "d") then
+		elseif key == "right" then
 			if optionstab == 2 then
 				if optionsselection == 3 then
 					if mariohats[skinningplayer][1] == nil then
@@ -1834,13 +1736,9 @@ function menu_keypressed(key, unicode)
 					playertypei = 1
 				elseif optionsselection == 8 then
 					playercollisions = not playercollisions
-				elseif optionsselection == 9 then
-					infinitetime = not infinitetime
-				elseif optionsselection == 10 then
-					infinitelives = not infinitelives
 				end
 			end				
-		elseif (key == "left" or key == "a") then
+		elseif key == "left" then
 			if optionstab == 2 then
 				if optionsselection == 3 then
 					if mariohats[skinningplayer][1] == 1 then
@@ -1880,7 +1778,7 @@ function menu_keypressed(key, unicode)
 				elseif optionsselection == 5 then
 					if volume > 0 then
 						volume = volume - 0.1
-						if volume <= 0 then
+						if volume < 0 then
 							volume = 0
 							soundenabled = false
 						end
@@ -1938,10 +1836,6 @@ function menu_keypressed(key, unicode)
 					playertypei = 1
 				elseif optionsselection == 8 then
 					playercollisions = not playercollisions
-				elseif optionsselection == 9 then
-					infinitetime = not infinitetime
-				elseif optionsselection == 10 then
-					infinitelives = not infinitelives
 				end
 			end
 		elseif key == "escape" then
@@ -2097,33 +1991,4 @@ function resetconfig()
 	shaders:set(2, nil)
 	saveconfig()
 	loadbackground("1-1.txt")
-end
-
-function selectworld()
-	if not reachedworlds[mappack] then
-		game_load()
-	end
-	
-	local noworlds = true
-	for i = 2, 8 do
-		if reachedworlds[mappack][i] then
-			noworlds = false
-			break
-		end
-	end
-	
-	if noworlds then
-		game_load()
-		return
-	end
-	
-	selectworldopen = true
-	selectworldcursor = 1
-	
-	selectworldexists = {}
-	for i = 1, 8 do
-		if love.filesystem.exists("mappacks/" .. mappack .. "/" .. i .. "-1.txt") then
-			selectworldexists[i] = true
-		end
-	end
 end

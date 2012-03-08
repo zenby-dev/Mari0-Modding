@@ -22,16 +22,16 @@ function button:init(x, y)
 end
 
 function button:update(dt)
-	local colls = checkrect(self.x+5/16, self.y-2/16, 20/16, 1, {"player", "goomba", "koopa", "box"})
+	local colls = checkrect(self.x+5/16, self.y-2/16, 20/16, 1, {"player", "goomba", "box"})
 	
 	if (#colls > 0) ~= self.out then
 		self.out = not self.out
 		for i = 1, #self.outtable do
 			if self.outtable[i].input then
 				if self.out then
-					self.outtable[i]:input("on")
+					self.outtable[i]:input("on", tostring(self))
 				else
-					self.outtable[i]:input("off")
+					self.outtable[i]:input("off", tostring(self))
 				end
 			end
 		end
